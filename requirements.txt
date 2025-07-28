@@ -1,0 +1,9 @@
+# python -m pip --trusted-host pypi.org --trusted-host files.pythonhosted.org install -U pip
+playwright
+wincertstore
+cryptography 
+pywin32
+# pip install pywinauto pillow pyautogui
+python-dotenv
+lxml
+pandas

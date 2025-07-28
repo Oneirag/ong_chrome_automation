@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ong_chrome_automation"
+version = "0.0.1"
+description = "Class to automate Chrome browser tasks using Playwright. It adds a class to deal with Microsoft Copilot"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    {name = "Oscar Neira"},
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+]
+dynamic = ["dependencies"]
+
+
+[project.urls]
+Homepage = "https://github.com/Oneirag/ong_chrome_automation"
+Repository = "https://github.com/Oneirag/ong_chrome_automation"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
