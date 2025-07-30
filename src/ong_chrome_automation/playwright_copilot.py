@@ -1,3 +1,4 @@
+import io
 import re
 import time
 from pathlib import Path
@@ -37,6 +38,8 @@ class CopilotAutomation:
 
     def __init__(self, browser, url: str = URL):
         self.browser = browser
+        # Extend the browser's default timeout
+        self.browser.context.set_default_timeout(30e3)  # 30 seconds in milliseconds
         browser.page.goto(url, wait_until="domcontentloaded")
         self.page = self.browser.page
         login_button = self.page.get_by_role("button", name=re.compile("^Iniciar sesión.*", re.IGNORECASE))
@@ -98,7 +101,7 @@ class CopilotAutomation:
 
     def get_response_tables(self) -> List[pd.DataFrame]:
         """ Gets the tables (pandas DataFrames) from the response. """
-        tables = pd.read_html(self.get_html_response())
+        tables = pd.read_html(io.StringIO(self.get_html_response()))
         return tables
 
     def get_response_code_blocks(self) -> List[str]:
