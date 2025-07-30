@@ -30,7 +30,7 @@ playwright install
 #### Basic Chrome Automation
 
 ```python
-from ong_chrome_automation.local_chrome_browser import LocalChromeBrowser
+from ong_chrome_automation import LocalChromeBrowser
 
 with LocalChromeBrowser() as browser:
     browser.goto("https://example.com")
@@ -39,6 +39,7 @@ with LocalChromeBrowser() as browser:
 ### With Client Certificate
 
 ```python
+from ong_chrome_automation import LocalChromeBrowser
 with LocalChromeBrowser(
     origin="https://your-server.com",
     pfxPath="./path/to/cert.pfx",
@@ -50,8 +51,7 @@ with LocalChromeBrowser(
 ### Microsoft Copilot Automation
 
 ```python
-from ong_chrome_automation.local_chrome_browser import LocalChromeBrowser
-from ong_chrome_automation.playwright_copilot import CopilotAutomation
+from ong_chrome_automation import LocalChromeBrowser, CopilotAutomation
 
 with LocalChromeBrowser() as browser:
     copilot = CopilotAutomation(browser)

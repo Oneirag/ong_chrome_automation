@@ -1,14 +1,17 @@
-from ong_chrome_automation.local_chrome_browser import LocalChromeBrowser
-from playwright.sync_api import ElementHandle, expect
 import re
 import time
 from pathlib import Path
-import pandas as pd
 from typing import List
+
+import pandas as pd
+from playwright.sync_api import ElementHandle, expect
+
+from ong_chrome_automation.local_chrome_browser import LocalChromeBrowser
 
 URL = "https://m365.cloud.microsoft/"
 PNG_FILE = r"page_4.png"
 TXT_FILE = r"page_4.txt"
+
 
 def select_file(page, locator, file_path):
     """
@@ -18,20 +21,19 @@ def select_file(page, locator, file_path):
         # Set up the listener with timeout
         with page.expect_file_chooser(timeout=10000) as fc_info:
             locator.click()  # Click the button to open the file selection dialog
-        
+
         # Handle the selection
         file_chooser = fc_info.value
         file_chooser.set_files(file_path)
-        
+
     except Exception as e:
         print(f"Error selecting file: {e}")
         raise
-    
 
 
 class CopilotAutomation:
-
     ANSWER_TIMEOUT = 120e3  # 2 minutes in milliseconds. This is the maximum time to wait for a response from Copilot.
+    LOGIN_TIMEOUT = 10e3  # 10 seconds in milliseconds. This is the maximum time to wait for the login process.
 
     def __init__(self, browser, url: str = URL):
         self.browser = browser
@@ -39,19 +41,20 @@ class CopilotAutomation:
         self.page = self.browser.page
         login_button = self.page.get_by_role("button", name=re.compile("^Iniciar sesión.*", re.IGNORECASE))
         login_link = self.page.get_by_role("link", name=re.compile("^Iniciar sesión como.*", re.IGNORECASE))
-        if login_button.all() or login_link.all():
-            if login_button.all():
+        # If user is already logged in, neither the login button nor link will be visible
+        if ((visible_login_button := login_button.is_visible(timeout=self.LOGIN_TIMEOUT)) or
+                (visible_login_link := login_link.is_visible(timeout=self.LOGIN_TIMEOUT))):
+            if visible_login_button:
                 login_button.click()
             else:
                 login_link.click()
             # Here you can add the code to complete the login if necessary
-            time.sleep(5)  # Wait for the login to complete
+            time.sleep(self.LOGIN_TIMEOUT)  # Wait for the login to complete
         self.response_locator = None
         # Always start a new chat
         self.page.get_by_test_id("newChatButton").click()
         self.user_messages = 0
         self.assistant_messages = 0
-
 
     def chat(self, message, files: List[str] = None):
         """
@@ -87,17 +90,17 @@ class CopilotAutomation:
         """ Gets the response in HTML format. """
         html_resp = self.response_locator.inner_html()
         return html_resp
-    
+
     def get_text_response(self) -> str:
-        """ Gets the response in plain text format. """   
+        """ Gets the response in plain text format. """
         txt_resp = self.response_locator.inner_text()
         return txt_resp
 
     def get_response_tables(self) -> List[pd.DataFrame]:
-        """ Gets the tables (pandas DataFrames) from the response. """  
+        """ Gets the tables (pandas DataFrames) from the response. """
         tables = pd.read_html(self.get_html_response())
         return tables
-    
+
     def get_response_code_blocks(self) -> List[str]:
         """ Gets the code blocks from the response. """
         iframes = self.response_locator.locator("iframe").element_handles()
@@ -110,7 +113,7 @@ class CopilotAutomation:
             ])
             all_codes.append(code)
         return all_codes
-    
+
     def get_response_files(self) -> List[ElementHandle]:
         """ Gets the attached files from the response. """
         retval = list()
@@ -143,21 +146,25 @@ if __name__ == "__main__":
 
     PDF_FILE = r"report.pdf"
 
+
     def test_copilot_text(copilot: CopilotAutomation):
         copilot.chat("Write a 100-word poem about the importance of sustainability in urban development.")
         print(copilot.get_text_response())
 
-    def test_copilot_code(copilot: CopilotAutomation):  
+
+    def test_copilot_code(copilot: CopilotAutomation):
         copilot.chat("Generate a Python code that calculates the factorial of a positive integer.")
         codes = copilot.get_response_code_blocks()
         print("Generated codes:"
               f"\n{codes}\n")
+
 
     def test_copilot_tables(copilot: CopilotAutomation):
         copilot.chat("Give me the tables you find in this PDF.", [PDF_FILE])
         tables = copilot.get_response_tables()
         for idx, table in enumerate(tables):
             print(f"Table {idx + 1}:\n{table}\n")
+
 
     def test_copilot_files(copilot: CopilotAutomation, download_path: str | Path = "../../copilot_downloads"):
         copilot.chat("Generate an Excel file with the numbers from 1 to 10.")
@@ -169,6 +176,7 @@ if __name__ == "__main__":
             copilot.download_file(file, download_path=download_path)
             print(f"File downloaded: {name} in copilot_downloads/{name}")
 
+
     def test_copilot_multiple_chats(copilot: CopilotAutomation):
         copilot.chat("What is the capital of France?")
         print(copilot.get_text_response())
@@ -178,6 +186,7 @@ if __name__ == "__main__":
 
         copilot.chat("What is the currency of France?")
         print(copilot.get_text_response())
+
 
     with LocalChromeBrowser() as browser:
 
