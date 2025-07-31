@@ -10,3 +10,4 @@ html5lib
 pandas
 pip-system-certs
 playwright_stealth
+beautifulsoup4

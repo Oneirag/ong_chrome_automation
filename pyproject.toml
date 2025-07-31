@@ -1,6 +1,6 @@
 [project]
 name = "ong_chrome_automation"
-version = "0.0.1"
+version = "0.1.1"
 description = "Class to automate Chrome browser tasks using Playwright. It adds a class to deal with Microsoft Copilot"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -14,7 +14,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
 ]
-dynamic = ["dependencies", "version"]
+dynamic = ["dependencies"]
 
 
 [project.urls]
