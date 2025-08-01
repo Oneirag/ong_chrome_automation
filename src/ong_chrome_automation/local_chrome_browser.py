@@ -67,8 +67,8 @@ class LocalChromeBrowser:
             'ignore_https_errors': True,
             'args': [
                 # Basic automation flags
-                # '--disable-blink-features=AutomationControlled',
-                # '--disable-automation',
+                 '--disable-blink-features=AutomationControlled',
+                 '--disable-automation',
                 '--disable-extensions',
                 #'--disable-infobars',
                 #'--no-sandbox',
@@ -77,17 +77,17 @@ class LocalChromeBrowser:
                 #f'--window-position={random.randint(0,100)},{random.randint(0,100)}',
                 
                 # Session restore prevention
-                #'--no-first-run',
+                '--no-first-run',
                 '--no-default-browser-check',
-                #'--disable-session-crashed-bubble',
-                #'--disable-restore-session-state',
-                #'--disable-sync',
-                #'--disable-crash-reporter',
+                '--disable-session-crashed-bubble',
+                '--disable-restore-session-state',
+                '--disable-sync',
+                '--disable-crash-reporter',
                 #'--start-maximized',
                 #'--force-empty-session-state',
             ],
             'bypass_csp': True,
-            'viewport': {'width': 1920, 'height': 1080},
+            # 'viewport': {'width': 1920, 'height': 1080},
         }
 
         # Add certificates if configured
@@ -96,8 +96,8 @@ class LocalChromeBrowser:
         
         # Launch persistent context
         self.context = self.playwright.chromium.launch_persistent_context(**context_options)
-        from playwright_stealth import Stealth
-        Stealth().apply_stealth_sync(self.context)
+        # from playwright_stealth import Stealth
+        # Stealth().apply_stealth_sync(self.context)
         # Create page and add stealth scripts
         self.page = self.context.new_page()
         self._add_stealth_scripts()

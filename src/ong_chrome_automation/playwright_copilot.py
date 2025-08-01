@@ -1,6 +1,7 @@
 import io
 import re
 import time
+import warnings
 from pathlib import Path
 from typing import List
 
@@ -9,7 +10,7 @@ from playwright.sync_api import ElementHandle, expect
 
 from ong_chrome_automation.local_chrome_browser import LocalChromeBrowser
 
-URL = "https://m365.cloud.microsoft/"
+
 PNG_FILE = r"page_4.png"
 TXT_FILE = r"page_4.txt"
 
@@ -34,9 +35,12 @@ def select_file(page, locator, file_path):
 
 class CopilotAutomation:
     ANSWER_TIMEOUT = 120e3  # 2 minutes in milliseconds. This is the maximum time to wait for a response from Copilot.
+    WAIT_DIVS_TIMEOUT = 30e3  # 30 seconds in milliseconds. This is the maximum time to wait for the loading placeholders to be hidden.
     LOGIN_TIMEOUT = 10e3  # 10 seconds in milliseconds. This is the maximum time to wait for the login process.
+    URL = "https://m365.cloud.microsoft/"
 
-    def __init__(self, browser, url: str = URL):
+    def __init__(self, browser, url: str = None):
+        url = url or self.URL
         self.browser = browser
         # Extend the browser's default timeout
         self.browser.context.set_default_timeout(30e3)  # 30 seconds in milliseconds
@@ -54,17 +58,38 @@ class CopilotAutomation:
             # Here you can add the code to complete the login if necessary
             time.sleep(self.LOGIN_TIMEOUT)  # Wait for the login to complete
         self.response_locator = None
+        self.user_messages = 0
         # Always start a new chat
+        self.new_chat()
+
+    def new_chat(self):
+        """Creates a new chat session in copilot."""
         self.page.get_by_test_id("newChatButton").click()
         self.user_messages = 0
-        self.assistant_messages = 0
 
-    def chat(self, message, files: List[str] = None):
+    def __fill_chat_input(self, message: str):
         """
-        Sends a message to the Copilot chat and waits for the response.
+        Fills the chat input with the given message.
+        This method is used to avoid code duplication in the chat method.
         """
         chat_input = self.page.get_by_role("textbox", name="Entrada del chat")
         chat_input.fill(message)
+
+    def chat(self, message, files: List[str] = None, create_new_session_if_full_context: bool = True):
+        """
+        Sends a message to the Copilot chat and waits for the response. If context is full, and we are in a
+        long conversation, it creates a new chat session if specified.
+        """
+        self.__fill_chat_input(message)
+        exceeded_limit = self.page.get_by_text("Character limit exceeded").is_visible(timeout=500)
+        if exceeded_limit:
+            if create_new_session_if_full_context and self.user_messages > 0:
+                # If the context is full, create a new chat session
+                self.new_chat()
+                self.__fill_chat_input(message)
+            else:
+                raise ValueError("Character limit exceeded. Please create a new chat session or reduce the message size.")
+
 
         for idx, file in enumerate(files or []):
             # The upload menu button
@@ -83,11 +108,32 @@ class CopilotAutomation:
         # To know if it has responded, wait for the stop button to disappear
         last_copy_button.wait_for(state="visible", timeout=self.ANSWER_TIMEOUT)
 
+        # response_locator = self.page.get_by_test_id("markdown-reply")
+        # It might happen that a response has more than one markdown-reply element and to_have_count looks for
+        # the exact number of elements, so this is not a good way to wait for the response.
+        # expect(response_locator).to_have_count(self.user_messages, timeout=self.ANSWER_TIMEOUT)
+
         # Now get response locator. There might be many, so wait to get one answer for each user message and then
         # get the last one
-        response_locator = self.page.get_by_test_id("markdown-reply")
-        expect(response_locator).to_have_count(self.user_messages, timeout=self.ANSWER_TIMEOUT)
         self.response_locator = self.page.get_by_test_id("markdown-reply").nth(-1)
+        # Wait for the response to be fully loaded
+        """
+        Find divs with the following structure:
+        <div role="progressbar" aria-busy="true" class="fui-Skeleton ___7ulbs20 f1ggmyuv fq3vbzb f1isyly7
+         ftciz5z" data-testid="loadingPlaceholderTestId">
+        """
+        # wait_divs = self.response_locator.locator("div[role='progressbar'][aria-busy='true']")
+        wait_divs = self.response_locator.get_by_test_id("loadingPlaceholderTestId")
+        # There might be multiple loading placeholders, so we wait for the last one
+        if wait_divs.count() > 0:
+            # Wait for all loading placeholder to be hidden
+            for i in range(wait_divs.count()):
+                try:
+                    expect(wait_divs.nth(i)).to_be_hidden(timeout=self.WAIT_DIVS_TIMEOUT)
+                except Exception as e:
+                    print(f"Error waiting for loading placeholder to be hidden: {e}")
+                    raise ValueError("Timeout waiting for the response to be ready. "
+                                     "Please try again or create a new chat session.")
 
     def get_html_response(self) -> str:
         """ Gets the response in HTML format. """
@@ -101,7 +147,13 @@ class CopilotAutomation:
 
     def get_response_tables(self) -> List[pd.DataFrame]:
         """ Gets the tables (pandas DataFrames) from the response. """
-        tables = pd.read_html(io.StringIO(self.get_html_response()))
+        try:
+            tables = pd.read_html(io.StringIO(self.get_html_response()))
+        except ValueError as ve:
+            if ve.args == ("No tables found", ):
+                warnings.warn("No tables found in the response.")
+                return []
+            raise
         return tables
 
     def get_response_code_blocks(self) -> List[str]:
@@ -168,7 +220,6 @@ if __name__ == "__main__":
         for idx, table in enumerate(tables):
             print(f"Table {idx + 1}:\n{table}\n")
 
-
     def test_copilot_files(copilot: CopilotAutomation, download_path: str | Path = "../../copilot_downloads"):
         copilot.chat("Generate an Excel file with the numbers from 1 to 10.")
         files = copilot.get_response_files()
@@ -190,13 +241,22 @@ if __name__ == "__main__":
         copilot.chat("What is the currency of France?")
         print(copilot.get_text_response())
 
+    def test_copilot_long_chat(copilot: CopilotAutomation):
+        copilot.chat("1" * 10000)
+        pass
+
 
     with LocalChromeBrowser() as browser:
 
         copilot = CopilotAutomation(browser)
+        try:
+            test_copilot_long_chat(copilot)
+        except ValueError as e:
+            print("Raised exception for long chat:", e)
+            pass
         # test_copilot_text(copilot)
         # test_copilot_code(copilot)
         # test_copilot_tables(copilot)
         # test_copilot_files(copilot)
-        test_copilot_multiple_chats(copilot)
+        # test_copilot_multiple_chats(copilot)
         pass
