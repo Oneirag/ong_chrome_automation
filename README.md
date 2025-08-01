@@ -118,17 +118,20 @@ with LocalChromeBrowser() as browser:
 ```
 
 ### Example 6: Handling long messages
-If you send a message that exceeds the character limit of copilot, a `ValueError` will be raised. 
+If you send a message that exceeds the character limit of copilot, a `ong_chrome_automation.exceptions.CopilotExceedsMaxLengthError` will be raised.
 
-If the message is part of a long conversation, it tries to create a new conversation first before raising the exception.
+If you want to handle this case, you can catch the exception and take appropriate action, such as splitting the message or notifying the user.
+
 ```python
 from ong_chrome_automation import LocalChromeBrowser, CopilotAutomation
+from ong_chrome_automation.exceptions import CopilotExceedsMaxLengthError
+
 with LocalChromeBrowser() as browser:
-    copilot = CopilotAutomation(browser)
-    try:
-        copilot.chat("1" * 10000)
-    except ValueError as e:
-        print("Error:", e)
+  copilot = CopilotAutomation(browser)
+  try:
+    copilot.chat("1" * 10000)
+  except CopilotExceedsMaxLengthError as e:
+    print("Error:", e)
 ```    
 
 ## Project Structure

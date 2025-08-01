@@ -1,8 +1,10 @@
 import unittest
+from logging import exception
 from pathlib import Path
 import pandas as pd
 
 from ong_chrome_automation import LocalChromeBrowser, CopilotAutomation
+from ong_chrome_automation.exceptions import CopilotExceedsMaxLengthError
 
 class TestCopilotAutomation(unittest.TestCase):
     pass
@@ -16,12 +18,14 @@ class TestCopilotAutomation(unittest.TestCase):
 
 
     def test_chat_text_response(self):
+        """Test that a chat input returns a string response."""
         self.copilot.chat("Write a 100-word poem about the importance of sustainability in urban development.")
         response = self.copilot.get_text_response()
         self.assertIsInstance(response, str, "Response should be a string.")
         self.assertGreater(len(response.split()), 20, "Response should be more than 20 words.")
 
     def test_chat_code_response(self):
+        """Test that a chat input requesting code returns a list of code blocks."""
         self.copilot.chat("Generate a Python code with a function named factorial "
                           "that calculates the factorial of a positive integer.")
         codes = self.copilot.get_response_code_blocks()
@@ -34,6 +38,7 @@ class TestCopilotAutomation(unittest.TestCase):
                       "Expected code block to contain the 'factorial' function definition.")
 
     def test_chat_tables_response(self):
+        """Test that a chat input requesting tables returns a list of DataFrames."""
         self.copilot.chat("Give me the tables you find in this PDF.",
                           [Path(__file__).with_name("sample_tables.pdf").as_posix()])
         tables = self.copilot.get_response_tables()
@@ -43,6 +48,7 @@ class TestCopilotAutomation(unittest.TestCase):
             self.assertIsInstance(table, pd.DataFrame, "Each table should be a pandas DataFrame.")
 
     def test_chat_files_response(self):
+        """Test that a chat input requesting a file returns a list of files."""
         self.copilot.chat("Generate an Excel file with the numbers from 1 to 10.")
         files = self.copilot.get_response_files()
         self.assertIsInstance(files, list, "Response should be a list of files.")
@@ -52,6 +58,7 @@ class TestCopilotAutomation(unittest.TestCase):
                           "Expected an excel file in the download attribute.")
 
     def test_multiple_chats(self):
+        """Test that multiple chat inputs return different responses."""
         self.copilot.chat("What is the capital of France?")
         response1 = self.copilot.get_text_response()
         self.assertIn("Paris", response1)
@@ -65,11 +72,13 @@ class TestCopilotAutomation(unittest.TestCase):
         self.assertIn("euro", response3.lower())
 
     def test_long_chat(self):
-        with self.assertRaises(ValueError):
-            self.copilot.chat("1" * 10000)
-            # This should raise an exception due to the length of the input exceeding the limit.
+        """Test that a long chat input raises an exception."""
+        with self.assertRaises(CopilotExceedsMaxLengthError) as context:
+            self.copilot.chat("1" * 15000)
+        print(context.exception)
 
     def test_no_tables(self):
+        """Test that a chat with no tables in the response returns an empty list."""
         self.copilot.chat("What is the capital of France?")
         tables = self.copilot.get_response_tables()
         self.assertEqual(len(tables), 0, "Expected no tables in response for this query.")

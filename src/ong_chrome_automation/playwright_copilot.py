@@ -9,7 +9,7 @@ import pandas as pd
 from playwright.sync_api import ElementHandle, expect
 
 from ong_chrome_automation.local_chrome_browser import LocalChromeBrowser
-
+from ong_chrome_automation.exceptions import CopilotExceedsMaxLengthError, CopilotTimeoutError
 
 PNG_FILE = r"page_4.png"
 TXT_FILE = r"page_4.txt"
@@ -83,12 +83,17 @@ class CopilotAutomation:
         self.__fill_chat_input(message)
         exceeded_limit = self.page.get_by_text("Character limit exceeded").is_visible(timeout=500)
         if exceeded_limit:
-            if create_new_session_if_full_context and self.user_messages > 0:
-                # If the context is full, create a new chat session
-                self.new_chat()
-                self.__fill_chat_input(message)
-            else:
-                raise ValueError("Character limit exceeded. Please create a new chat session or reduce the message size.")
+            # get the text of an element similar to
+            # <span class="fai-ChatInput__count r1sdbc9y ___90ugon0 f1oi9n2k">15000 / 8000</span>
+            try:
+                limit = self.page.locator("span.fai-ChatInput__count").inner_text()
+                current, max_length = map(int, re.findall(r"\d+", limit))
+            except:
+                current = max_length = 0
+            raise CopilotExceedsMaxLengthError(
+                "Character limit exceeded. Please create a new chat session or reduce the message size.",
+                current_length=current, max_length=max_length
+            )
 
 
         for idx, file in enumerate(files or []):
@@ -132,7 +137,7 @@ class CopilotAutomation:
                     expect(wait_divs.nth(i)).to_be_hidden(timeout=self.WAIT_DIVS_TIMEOUT)
                 except Exception as e:
                     print(f"Error waiting for loading placeholder to be hidden: {e}")
-                    raise ValueError("Timeout waiting for the response to be ready. "
+                    raise CopilotTimeoutError("Timeout waiting for the response to be ready. "
                                      "Please try again or create a new chat session.")
 
     def get_html_response(self) -> str:
