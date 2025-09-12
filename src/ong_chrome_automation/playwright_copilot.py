@@ -124,7 +124,7 @@ class CopilotAutomation:
             # self.page.get_by_test_id().click()
             self.page.get_by_test_id(self.TESTID_PLUS_BUTTON).click()
             select_file(self.page, self.page.get_by_text(self.TEXT_UPLOAD_FILE), file)
-            time.sleep(1)
+            time.sleep(2)
             if self.get_element_by_role_name("button", "Volver a intentar", timeout=6000,
                                              raise_exception=False):
                 # Last uploaded file has been previously uploaded and copilot refuses to upload it again
