@@ -14,6 +14,8 @@ from ong_chrome_automation.exceptions import CopilotExceedsMaxLengthError, Copil
 PNG_FILE = r"page_4.png"
 TXT_FILE = r"page_4.txt"
 
+class ElementNotFoundException(Exception):
+    pass
 
 def select_file(page, locator, file_path):
     """
@@ -38,6 +40,27 @@ class CopilotAutomation:
     WAIT_DIVS_TIMEOUT = 30e3  # 30 seconds in milliseconds. This is the maximum time to wait for the loading placeholders to be hidden.
     LOGIN_TIMEOUT = 10e3  # 10 seconds in milliseconds. This is the maximum time to wait for the login process.
     URL = "https://m365.cloud.microsoft/"
+    ROLE_CHAT_PLACEHOLDER = ["textbox", "combobox"]     # Role of the placeholder of the input where chat is written
+    NAME_SEND_BUTTON = ["Enviar", "Send"]               # It could be in spanish or in english...
+    TESTID_PLUS_BUTTON = "PlusMenuButton"               # Formerly "PlusMenuButtonUploadMenu"
+    TEXT_UPLOAD_FILE = "Cargar imágenes y archivos"     # Formerly "Cargar desde este dispositivo"
+
+    def get_element_by_role_name(self, roles: str | list[str], names: str | list[str], timeout: int=200,
+                                 raise_exception: bool=True):
+        """Tries to find a valid element by any of the given roles or names. Raises NotFoundException if not found"""
+        if isinstance(roles, str):
+            roles = [roles]
+        if isinstance(names, str):
+            names = [names]
+        for role in roles:
+            for name in names:
+                element = self.page.get_by_role(role, name=name)
+                if element.is_visible(timeout=timeout):
+                    return element
+        if raise_exception:
+            raise ElementNotFoundException(f"No element found with role {roles} and name {names}")
+        else:
+            return None
 
     def __init__(self, browser, url: str = None):
         url = url or self.URL
@@ -72,7 +95,7 @@ class CopilotAutomation:
         Fills the chat input with the given message.
         This method is used to avoid code duplication in the chat method.
         """
-        chat_input = self.page.get_by_role("textbox", name="Entrada del chat")
+        chat_input = self.get_element_by_role_name(self.ROLE_CHAT_PLACEHOLDER, names="Entrada del chat")
         chat_input.fill(message)
 
     def chat(self, message, files: List[str] = None, create_new_session_if_full_context: bool = True):
@@ -98,10 +121,27 @@ class CopilotAutomation:
 
         for idx, file in enumerate(files or []):
             # The upload menu button
-            self.page.get_by_test_id("PlusMenuButtonUploadMenu").click()
-            select_file(self.page, self.page.get_by_text("Cargar desde este dispositivo"), file)
+            # self.page.get_by_test_id().click()
+            self.page.get_by_test_id(self.TESTID_PLUS_BUTTON).click()
+            select_file(self.page, self.page.get_by_text(self.TEXT_UPLOAD_FILE), file)
+            time.sleep(1)
+            if self.get_element_by_role_name("button", "Volver a intentar", timeout=6000,
+                                             raise_exception=False):
+                # Last uploaded file has been previously uploaded and copilot refuses to upload it again
+                # Then:
+                # 1 - Remove the last uploaded file
+                self.get_element_by_role_name("button", "Eliminar archivo adjunto {}".format(file.name)).click()
+                # 2 - Open menu
+                self.page.get_by_test_id(self.TESTID_PLUS_BUTTON).click()
+                # 3 - Select work files
+                self.page.get_by_test_id("PlusMenuItemAttachContent").click()
+                # 4 - Probably is one of the listed files, look for it
+                self.get_element_by_role_name("searchBox", "Buscar").fill(file.stem)
+                # 5 - Now click on the first element
+                self.page.get_by_role("menu").get_by_role("menuitem").nth(0).click()
+            pass
 
-        self.page.get_by_role("button", name="Send").click()
+        self.get_element_by_role_name("button", self.NAME_SEND_BUTTON).click()
         self.user_messages += 1
         # Wait for the copy button to be visible (response ready).
         # There might be more than one answer, so we have to wait for the last one
