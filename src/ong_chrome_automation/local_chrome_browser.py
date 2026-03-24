@@ -3,14 +3,20 @@ import time
 import os
 import random
 from typing import Optional, List, Dict
+#from ong_chrome_automation.capture_headers import CaptureHeaders
+from capture_headers import CaptureHeaders
+
 
 class LocalChromeBrowser:
+            
+
     def __init__(self, origin: Optional[str] = None, 
                  pfxPath: Optional[str] = None, 
                  passphrase: Optional[str] = None,
                  cert_config: Optional[List[Dict]] = None,
                  visible: bool = True,
-                 add_stealth_scrips: bool = False):
+                 add_stealth_scrips: bool = False,
+                 capture_headers: bool | list = None):
         """
         Initialize browser with optional certificate parameters.
         All certificate parameters must be provided together or none at all.
@@ -34,7 +40,9 @@ class LocalChromeBrowser:
         self.add_stealth_scrips = add_stealth_scrips
         self.page: Optional[Page] = None
         self.visible = visible
-        
+        self.capture_headers = None
+        self.__capture_headers = capture_headers
+
         # Validate certificate parameters
         cert_params = [origin, pfxPath, passphrase]
         if any(cert_params) and not all(cert_params):
@@ -96,12 +104,21 @@ class LocalChromeBrowser:
         
         # Launch persistent context
         self.context = self.playwright.chromium.launch_persistent_context(**context_options)
+        if self.__capture_headers:
+            self.capture_headers = CaptureHeaders(self.context, self.__capture_headers)
+
         # from playwright_stealth import Stealth
         # Stealth().apply_stealth_sync(self.context)
         # Create page and add stealth scripts
         self.page = self.context.new_page()
         self._add_stealth_scripts()
         return self
+    
+    @property
+    def headers(self) -> dict:
+        if self.capture_headers:
+            return self.capture_headers.headers
+        return dict()
 
     def __close_playwright(self):
         if self.context:
@@ -170,7 +187,7 @@ class LocalChromeBrowser:
 # Example usage:
 if __name__ == "__main__":
 
-    with LocalChromeBrowser() as browser:
+    with LocalChromeBrowser(capture_headers=True) as browser:
         browser.goto("https://enel.service-now.com/navpage.do")
         browser.random_delay()
         # Access the page directly for Playwright Page methods
