@@ -58,7 +58,7 @@ with LocalChromeBrowser(visible=False) as browser:
 
 ## Microsoft Copilot Automation
 
-The `CopilotAutomation` class allows you to automate interactions with Microsoft Copilot web chat using Playwright. Below are some usage examples:
+The `CopilotChatAutomation` class allows you to automate interactions with Microsoft Copilot web chat using Playwright. Use `M365CopilotAutomation` for M365 Copilot interaction (work mode by default). Below are some usage examples:
 
 It is designed to work with the **work** version of Copilot (https://m365.cloud.microsoft/), not the personal version. To avoid MFA, you should have logged in in your Chrome session before using this class.
 
@@ -66,18 +66,18 @@ You can use it to send messages, upload files, and retrieve responses in various
 
 ### Example 1: Send a Message and Get Response
 ```python
-from ong_chrome_automation import LocalChromeBrowser, CopilotAutomation
+from ong_chrome_automation import LocalChromeBrowser, CopilotChatAutomation     # Use M365CopilotAutomation for M365 version
 
 with LocalChromeBrowser() as browser:
-    copilot = CopilotAutomation(browser)
+    copilot = CopilotChatAutomation(browser)    # Use M365CopilotAutomation for M365 version
     copilot.chat("What is the capital of France?")
     print(copilot.get_text_response())
 ```
 #### Example 2: Ask for code generation and read code blocks in response
 ```python
-from ong_chrome_automation import LocalChromeBrowser, CopilotAutomation
+from ong_chrome_automation import LocalChromeBrowser, CopilotChatAutomation # Use M365CopilotAutomation for M365 version
 with LocalChromeBrowser() as browser:
-    copilot = CopilotAutomation(browser)
+    copilot = CopilotChatAutomation(browser)        # Use M365CopilotAutomation for M365 version
     copilot.chat("Generate a Python code with a function named factorial that calculates the factorial of a positive integer.")
     codes = copilot.get_response_code_blocks()
     print(codes[0])  # Print the first code block```
@@ -88,28 +88,28 @@ Files can be uploaded to Copilot, and the response can be retrieved as text or H
 
 The limits of copilot apply to this case, e.g. just a single image file can be uploaded per message.
 ```python
-from ong_chrome_automation import LocalChromeBrowser, CopilotAutomation
+from ong_chrome_automation import LocalChromeBrowser, CopilotChatAutomation # Use M365CopilotAutomation for M365 version
 with LocalChromeBrowser() as browser:
-    copilot = CopilotAutomation(browser)
+    copilot = CopilotChatAutomation(browser)    # Use M365CopilotAutomation for M365 version
     copilot.chat("Analyze this file:", ["./path/to/your/file.txt"])
     print(copilot.get_text_response())
 ```
 
 ### Example 4: Get response as a pandas DataFrame
 ```python
-from ong_chrome_automation import LocalChromeBrowser, CopilotAutomation
+from ong_chrome_automation import LocalChromeBrowser, CopilotChatAutomation # Use M365CopilotAutomation for M365 version
 import pandas as pd
 with LocalChromeBrowser() as browser:
-    copilot = CopilotAutomation(browser)
+    copilot = CopilotChatAutomation(browser)        # Use M365CopilotAutomation for M365 version
     copilot.chat("Create a table for the squares of the first 10 numbers.")
     df = copilot.get_response_tables()[0]
     print(df.head())  # Display the first few rows of the DataFrame
 ```
 ### Example 5: Download a file from Copilot response
 ```python
-from ong_chrome_automation import LocalChromeBrowser, CopilotAutomation
+from ong_chrome_automation import LocalChromeBrowser, CopilotChatAutomation     # Use M365CopilotAutomation for M365 version
 with LocalChromeBrowser() as browser:
-    copilot = CopilotAutomation(browser)
+    copilot = CopilotChatAutomation(browser)        # Use M365CopilotAutomation for M365 version
     copilot.chat("Create an excel sheet with the numbers from 1 to 10.")
     files = copilot.get_response_files()
     for file in files:
@@ -123,11 +123,11 @@ If you send a message that exceeds the character limit of copilot, a `ong_chrome
 If you want to handle this case, you can catch the exception and take appropriate action, such as splitting the message or notifying the user.
 
 ```python
-from ong_chrome_automation import LocalChromeBrowser, CopilotAutomation
+from ong_chrome_automation import LocalChromeBrowser, CopilotChatAutomation  # Use M365CopilotAutomation for M365 version
 from ong_chrome_automation.exceptions import CopilotExceedsMaxLengthError
 
 with LocalChromeBrowser() as browser:
-  copilot = CopilotAutomation(browser)
+  copilot = CopilotChatAutomation(browser) # Use M365CopilotAutomation for M365 version
   try:
     copilot.chat("1" * 10000)
   except CopilotExceedsMaxLengthError as e:
