@@ -3,8 +3,10 @@ import time
 import os
 import random
 from typing import Optional, List, Dict
-#from ong_chrome_automation.capture_headers import CaptureHeaders
-from capture_headers import CaptureHeaders
+try:
+    from ong_chrome_automation.capture_headers import CaptureHeaders
+except ImportError:
+    from capture_headers import CaptureHeaders
 
 
 class LocalChromeBrowser:

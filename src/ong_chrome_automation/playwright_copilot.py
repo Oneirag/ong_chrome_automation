@@ -8,10 +8,12 @@ from typing import List
 import pandas as pd
 from playwright.sync_api import ElementHandle, expect
 
-# from ong_chrome_automation.local_chrome_browser import LocalChromeBrowser
-# from ong_chrome_automation.exceptions import CopilotExceedsMaxLengthError, CopilotTimeoutError
-from local_chrome_browser import LocalChromeBrowser
-from exceptions import CopilotExceedsMaxLengthError, CopilotTimeoutError
+try:
+    from ong_chrome_automation.local_chrome_browser import LocalChromeBrowser
+    from ong_chrome_automation.exceptions import CopilotExceedsMaxLengthError, CopilotTimeoutError
+except ImportError:
+    from local_chrome_browser import LocalChromeBrowser
+    from exceptions import CopilotExceedsMaxLengthError, CopilotTimeoutError
 
 PNG_FILE = r"page_4.png"
 TXT_FILE = r"page_4.txt"
