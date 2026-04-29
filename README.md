@@ -56,6 +56,24 @@ with LocalChromeBrowser(visible=False) as browser:
     browser.goto("https://example.com")
 ```
 
+### Run in Jupyter Notebook (windows)
+In windows, playwright sync api does not work, and you should use async api within a thread. Function `ong_chrome_automation.jupyter import run_playwright_jupyter` is provided for convenience.
+
+Here is sample code:
+
+```python
+from ong_chrome_automation.jupyter import run_playwright_jupyter
+from ong_chrome_automation import LocalChromeBrowser
+
+
+async def main():
+    async with LocalChromeBrowser() as browser:
+        await browser.a_goto("https://example.com")
+        await browser.a_random_delay()
+
+run_playwright_jupyter(main)
+```
+
 ## Microsoft Copilot Automation
 
 The `CopilotChatAutomation` class allows you to automate interactions with Microsoft Copilot web chat using Playwright. Use `M365CopilotAutomation` for M365 Copilot interaction (work mode by default). Below are some usage examples:
@@ -133,6 +151,22 @@ with LocalChromeBrowser() as browser:
   except CopilotExceedsMaxLengthError as e:
     print("Error:", e)
 ```    
+
+### Async versions
+Class `CopilotChatAutomation` works also in async mode. Just use methods starting with `a`.
+
+```python
+import asyncio
+from ong_chrome_automation import LocalChromeBrowser, CopilotChatAutomation
+
+async def async_main():
+        async with LocalChromeBrowser(capture_headers=True) as browser:
+            copilot = await M365CopilotAutomation.acreate(browser)
+            await copilot.achat("Hello")
+            text = await copilot.aget_text_response()
+
+asyncio.run(async_main())
+``` 
 
 ## Project Structure
 * src/ong_chrome_automation/local_chrome_browser.py: Chrome browser automation class.
